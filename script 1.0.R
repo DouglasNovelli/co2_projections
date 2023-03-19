@@ -4,28 +4,35 @@
 # emissão de gás carbônico (CO2) na atmosfera, assim como identificar o 
 # melhor modelo preditivo a partir de dados do tamanho da população e do PIB 
 
+# Esse projeto também está disponível na forma de um notebook em R Markdown
+# disponível nesse link: https://douglasnovelli.github.io/co2_projections/
+
 
 # BIBLIOTECAS NECESSÁRIAS --------------------------------------
-library(readxl) #usado p/ carregar dados no formato xls e xlsx
+library(openxlsx) #usado p/ baixar e carregar dados no formato xlsx 
 library(tidyverse) #usado p/ organizar e limpar os bancos de dados
-library(maps) #fornece dados e funções para plotar mapas, incluíndo fronteiras nacionais
-library(mgcv) #usado para projetar o modelo GAM
-library(forecast) #usado para projetar os modelos ARIMA e ARIMAX
+library(maps) #fornece dados e funções p/ plotar mapas, incluíndo fronteiras nacionais
+library(mgcv) #usado p/ projetar o modelo GAM
+library(forecast) #usado p/ projetar os modelos ARIMA e ARIMAX
 
 
 # BANCOS DE DADOS ----------------------------------------------
 
 # Emissões de CO2, extraídos do projeto EDGAR
-co2 <- read_excel("datasets/CO2_1970_2018.xlsx")
+url_co2 <- "https://raw.githubusercontent.com/DouglasNovelli/co2_projections/main/datasets/CO2_1970_2018.xlsx"
+co2 <- read.xlsx(url_co2)
 
 # População, com dados do Banco Mundial
-pop <- read_excel("datasets/API_SP.POP.TOTL_DS2_en_excel_v2_4901765.xls")
+url_pop <- "https://raw.githubusercontent.com/DouglasNovelli/co2_projections/main/datasets/API_SP.POP.TOTL_DS2_en_excel_v2_4901765.xlsx"
+pop <- read.xlsx(url_pop)
 
 # Produto Interno Bruto, com dados do Banco Mundial
-pib <- read_excel("datasets/API_NY.GDP.MKTP.CD_DS2_en_excel_v2_4901715.xls")
+url_pib <- "https://raw.githubusercontent.com/DouglasNovelli/co2_projections/main/datasets/API_NY.GDP.MKTP.CD_DS2_en_excel_v2_4901715.xlsx"
+pib <- read.xlsx(url_pib)
 
 # Dados sobre as regiões de cada país, com dados do Banco Mundial
-metadata <- read_excel("datasets/Metadata.xls")
+url_metadata <- "https://raw.githubusercontent.com/DouglasNovelli/co2_projections/main/datasets/Metadata.xlsx"
+metadata <- read.xlsx(url_metadata)
 
 
 # LIMPEZA DOS BANCOS DE DADOS ---------------------------------------------
@@ -37,16 +44,16 @@ co2 <- co2 %>%
   rename_with(~gsub("Y_", "", .x), starts_with("Y_")) #retira o Y_ do começo de cada ano
 
 pop <- pop %>%
-  select(-`Indicator Code`, -`Indicator Name`) %>%
-  rename(ccode = `Country Code`, country = `Country Name`)
+  select(-Indicator.Code, -Indicator.Name) %>%
+  rename(ccode = Country.Code, country = Country.Name)
 
 pib <- pib %>%
-  select(-`Indicator Code`, -`Indicator Name`) %>%
-  rename(ccode = `Country Code`, country = `Country Name`)
+  select(-Indicator.Code, -Indicator.Name) %>%
+  rename(ccode = Country.Code, country = Country.Name)
 
 metadata <- metadata %>%
   select(-SpecialNotes) %>%
-  rename(ccode = `Country Code`, country = TableName, region = Region, income = IncomeGroup)
+  rename(ccode = Country.Code, country = TableName, region = Region, income = IncomeGroup)
 
 # O banco metadata usa metadados das bases do banco mundial,
 # a notação faltante nesse banco se refere ao mundo como um todo.
@@ -657,7 +664,7 @@ rmse <- c(rmse_lms,
           rmse_arimax)
 modelos <- c("RLS", "RLM", "GAM_1", "GAM_2", "GAM_3", "ARIMA", "ARIMAX")
 barplot(rmse, names.arg = modelos, col = cores,
-        main = "Comparação entre os modelos - RMSE",
+        main = "Comparação entre os modelos - Raiz do Erro Médio Quadrático (RMSE)",
         xlab = "Modelo", ylab = "RMSE")
 
 mae <- c(mae_lms,
@@ -669,7 +676,7 @@ mae <- c(mae_lms,
          mae_arimax)
 modelos <- c("RLS", "RLM", "GAM_1", "GAM_2", "GAM_3", "ARIMA", "ARIMAX")
 barplot(mae, names.arg = modelos, col = cores,
-        main = "Comparação entre os modelos - MAE",
+        main = "Comparação entre os modelos - Erro Absoluto Médio (MAE)",
         xlab = "Modelo", ylab = "MAE")
 
 aic <- c(aic_lms,
@@ -681,7 +688,7 @@ aic <- c(aic_lms,
          aic_arimax)
 modelos <- c("RLS", "RLM", "GAM_1", "GAM_2", "GAM_3", "ARIMA", "ARIMAX")
 barplot(aic, names.arg = modelos, col = cores,
-        main = "Comparação entre os modelos - AIC",
+        main = "Comparação entre os modelos - Critério de Informação de Akaike (AIC)",
         xlab = "Modelo", ylab = "AIC")
 
 bic <- c(bic_lms,
@@ -693,7 +700,7 @@ bic <- c(bic_lms,
          bic_arimax)
 modelos <- c("RLS", "RLM", "GAM_1", "GAM_2", "GAM_3", "ARIMA", "ARIMAX")
 barplot(bic, names.arg = modelos, col = cores,
-        main = "Comparação entre os modelos - BIC",
+        main = "Comparação entre os modelos - Critério de Informação Bayesiano (BIC)",
         xlab = "Modelo", ylab = "BIC")
 
 
