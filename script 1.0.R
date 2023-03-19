@@ -4,28 +4,35 @@
 # emissão de gás carbônico (CO2) na atmosfera, assim como identificar o 
 # melhor modelo preditivo a partir de dados do tamanho da população e do PIB 
 
+# Esse projeto também está disponível na forma de um notebook em R Markdown
+# disponível nesse link: https://douglasnovelli.github.io/co2_projections/
+
 
 # BIBLIOTECAS NECESSÁRIAS --------------------------------------
-library(readxl) #usado p/ carregar dados no formato xls e xlsx
+library(openxlsx) #usado p/ baixar e carregar dados no formato xlsx 
 library(tidyverse) #usado p/ organizar e limpar os bancos de dados
-library(maps) #fornece dados e funções para plotar mapas, incluíndo fronteiras nacionais
-library(mgcv) #usado para projetar o modelo GAM
-library(forecast) #usado para projetar os modelos ARIMA e ARIMAX
+library(maps) #fornece dados e funções p/ plotar mapas, incluíndo fronteiras nacionais
+library(mgcv) #usado p/ projetar o modelo GAM
+library(forecast) #usado p/ projetar os modelos ARIMA e ARIMAX
 
 
 # BANCOS DE DADOS ----------------------------------------------
 
 # Emissões de CO2, extraídos do projeto EDGAR
-co2 <- read_excel("datasets/CO2_1970_2018.xlsx")
+url_co2 <- "https://raw.githubusercontent.com/DouglasNovelli/co2_projections/main/datasets/CO2_1970_2018.xlsx"
+co2 <- read.xlsx(url_co2)
 
 # População, com dados do Banco Mundial
-pop <- read_excel("datasets/API_SP.POP.TOTL_DS2_en_excel_v2_4901765.xls")
+url_pop <- "https://raw.githubusercontent.com/DouglasNovelli/co2_projections/main/datasets/API_SP.POP.TOTL_DS2_en_excel_v2_4901765.xlsx"
+pop <- read.xlsx(url_pop)
 
 # Produto Interno Bruto, com dados do Banco Mundial
-pib <- read_excel("datasets/API_NY.GDP.MKTP.CD_DS2_en_excel_v2_4901715.xls")
+url_pib <- "https://raw.githubusercontent.com/DouglasNovelli/co2_projections/main/datasets/API_NY.GDP.MKTP.CD_DS2_en_excel_v2_4901715.xlsx"
+pib <- read.xlsx(url_pib)
 
 # Dados sobre as regiões de cada país, com dados do Banco Mundial
-metadata <- read_excel("datasets/Metadata.xls")
+url_metadata <- "https://raw.githubusercontent.com/DouglasNovelli/co2_projections/main/datasets/Metadata.xlsx"
+metadata <- read.xlsx(url_metadata)
 
 
 # LIMPEZA DOS BANCOS DE DADOS ---------------------------------------------
@@ -37,16 +44,16 @@ co2 <- co2 %>%
   rename_with(~gsub("Y_", "", .x), starts_with("Y_")) #retira o Y_ do começo de cada ano
 
 pop <- pop %>%
-  select(-`Indicator Code`, -`Indicator Name`) %>%
-  rename(ccode = `Country Code`, country = `Country Name`)
+  select(-Indicator.Code, -Indicator.Name) %>%
+  rename(ccode = Country.Code, country = Country.Name)
 
 pib <- pib %>%
-  select(-`Indicator Code`, -`Indicator Name`) %>%
-  rename(ccode = `Country Code`, country = `Country Name`)
+  select(-Indicator.Code, -Indicator.Name) %>%
+  rename(ccode = Country.Code, country = Country.Name)
 
 metadata <- metadata %>%
   select(-SpecialNotes) %>%
-  rename(ccode = `Country Code`, country = TableName, region = Region, income = IncomeGroup)
+  rename(ccode = Country.Code, country = TableName, region = Region, income = IncomeGroup)
 
 # O banco metadata usa metadados das bases do banco mundial,
 # a notação faltante nesse banco se refere ao mundo como um todo.
@@ -75,9 +82,9 @@ co2 %>%
 
 co2 %>%
   filter(!(ccode %in% pop$ccode)) %>%
-  pull(country) # exrai os valores da variável country como uma lista
+  pull(country) # extrai os valores da variável country como uma lista
 
-# A maior parte dos casos se refere a territórios ultramarinhos.
+# A maior parte dos casos se refere a territórios ultramarinos.
 # Por conta de seu tamanho reduzido, tendem a não impactar no modelo.
 # Opta-se assim pela remoção desses dados.
 
@@ -170,7 +177,7 @@ co2 %>%
 # Só a América do Norte, Europa e Ásia Central mostram uma tendencia de queda;
 # O Leste Asiático e o Pacífico apresentam uma curva acentuada de crescimento das emissões.
 
-# Nota-se que esses gráficos estão sujeito a distorções causadas por dados ausentes
+# Nota-se que esses gráficos estão sujeitos a distorções causadas por dados ausentes
 # a média de emissões anuais, desconsiderando os valores ausentes, 
 # pode fornecer um parâmetro mais confiável para inferir o crescimento das emissões
 
@@ -216,7 +223,7 @@ filter(co2, year >= 2014) %>%
   labs(title = " Cinco países que mais reduziram suas emissões entre 2015 e 2016",
        x = "ano",
        color = "")
-# Como demostrado, a queda das emissões em 2016 parece ter sido puchada sobretudo pelos EUA e pela Índia
+# Como demostrado, a queda das emissões em 2016 parece ter sido puxada sobretudo pelos EUA e pela Índia
 
 
 # Gráfico setorial das emissões geradas por esses países em relação ao total gerado entre 2010-2018
@@ -241,7 +248,7 @@ co2 %>%
   labs(title = "Emissões geradas pelos países líderes no ranking no período (% relação ao total)",
        subtitle = "2010-2018",
        fill = "")
-# Entre 2010 e 2018, China, EUA e India foram responsáveis por, 
+# Entre 2010 e 2018, China, EUA e Índia foram responsáveis por, 
 # aproximadamente, metade das emissões de CO2 no mundo.
 
 
@@ -255,8 +262,8 @@ ggplot(data = filter(co2, country %in% top_total_emissions$country),
        y = "Emissões de CO2 (kt)",
        color = "")
 # EUA e Japão taxas estáveis no período;
-# A Rússia ten taxas relativamente estáveis, com uma queda percepítivel ao fim da URSS;
-# China e India apresentam aumentos exponenciais a partir de meados da década de 90,
+# A Rússia tem taxas relativamente estáveis, com uma queda percepitível ao fim da URSS;
+# China e Índia apresentam aumentos exponenciais a partir de meados da década de 90,
 # com uma queda perceptível em 2016, seguida de aparente retomada no crescimento.
 
 
@@ -279,7 +286,7 @@ full_join(map, co2_mean, by = c("region" = "country")) %>%
   as.list() %>%
   print()
 
-# padroniza o banco map para garantir correspondência com os dados importados do pacote "maps"
+# padroniza o banco map para garantir correspondência com os dados importados do pacote `maps`
 map <- map %>%
   # altera a grafia do nome dos países
   mutate(
@@ -529,7 +536,7 @@ summary(modelo_lms)
 # Previsões com o modelo de regressão linear simples
 previsoes_lms <- predict(modelo_lms, newdata = dados_teste)
 
-# Para avaliar o modelo, se usa os dados de teste para calculamr a Raiz do Erro Médio Quadrático (RMSE),
+# Para avaliar o modelo, se usa os dados de teste para calcular a Raiz do Erro Médio Quadrático (RMSE),
 rmse_lms <- sqrt(mean((previsoes_lms - dados_teste$co2)^2))
 # o Erro Absoluto Médio (MAE),
 mae_lms <- mean(abs(previsoes_lms - dados_teste$co2))
@@ -628,7 +635,7 @@ aic_arimax <- AIC(modelo_arimax)
 bic_arimax <- BIC(modelo_arimax)
 
 
-# cria um data frame com os resultados dos testes de avaliação aplicados em cada modelo
+# cria um dataframe com os resultados dos testes de avaliação aplicados em cada modelo
 resultados <- data.frame()
 
 # preenche as linhas do dataframe com os valores calculados para cada modelo
@@ -657,7 +664,7 @@ rmse <- c(rmse_lms,
           rmse_arimax)
 modelos <- c("RLS", "RLM", "GAM_1", "GAM_2", "GAM_3", "ARIMA", "ARIMAX")
 barplot(rmse, names.arg = modelos, col = cores,
-        main = "Comparação entre os modelos - RMSE",
+        main = "Comparação entre os modelos - Raiz do Erro Médio Quadrático (RMSE)",
         xlab = "Modelo", ylab = "RMSE")
 
 mae <- c(mae_lms,
@@ -669,7 +676,7 @@ mae <- c(mae_lms,
          mae_arimax)
 modelos <- c("RLS", "RLM", "GAM_1", "GAM_2", "GAM_3", "ARIMA", "ARIMAX")
 barplot(mae, names.arg = modelos, col = cores,
-        main = "Comparação entre os modelos - MAE",
+        main = "Comparação entre os modelos - Erro Absoluto Médio (MAE)",
         xlab = "Modelo", ylab = "MAE")
 
 aic <- c(aic_lms,
@@ -681,7 +688,7 @@ aic <- c(aic_lms,
          aic_arimax)
 modelos <- c("RLS", "RLM", "GAM_1", "GAM_2", "GAM_3", "ARIMA", "ARIMAX")
 barplot(aic, names.arg = modelos, col = cores,
-        main = "Comparação entre os modelos - AIC",
+        main = "Comparação entre os modelos - Critério de Informação de Akaike (AIC)",
         xlab = "Modelo", ylab = "AIC")
 
 bic <- c(bic_lms,
@@ -693,7 +700,7 @@ bic <- c(bic_lms,
          bic_arimax)
 modelos <- c("RLS", "RLM", "GAM_1", "GAM_2", "GAM_3", "ARIMA", "ARIMAX")
 barplot(bic, names.arg = modelos, col = cores,
-        main = "Comparação entre os modelos - BIC",
+        main = "Comparação entre os modelos - Critério de Informação Bayesiano (BIC)",
         xlab = "Modelo", ylab = "BIC")
 
 
@@ -712,6 +719,6 @@ barplot(bic, names.arg = modelos, col = cores,
 # O ARIMAX Apresentou o maior RMSE e MAE entre todos os modelos, 
 # indicando que a inclusão de pib e pop não melhorou a previsão em relação ao modelo ARIMA simples.
 
-# Concluí-se que, entre os modelos testados, 
+# Conclui-se que, entre os modelos testados, 
 # o que apresentou os melhores resultados foi o modelo de regressão linear múltipla.
 
